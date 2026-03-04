@@ -234,7 +234,7 @@
 <!-- HUD -->
 <div id="hud">
   <div class="hud-box" id="scoreBox">🎯 Score: 0</div>
-  <div class="hud-box" id="timerBox">⏱ 1:30</div>
+  <div class="hud-box" id="timerBox">⏱ 1:00</div>
 </div>
 
 <!-- Color Meter -->
@@ -318,7 +318,7 @@ const ctx = canvas.getContext('2d');
 let W, H;
 let gameRunning = false;
 let score = 0;
-let timeLeft = 90; // 1:30
+let timeLeft = 60; // 1:00
 let colorMeter = 0;
 let characters = [];
 let particles = [];
@@ -874,13 +874,13 @@ function gameLoop(timestamp) {
   updateFloatingPowder(dt);
 
   // Special moments
-  if (Math.floor(timeLeft) === 60 && Math.floor(timeLeft + dt) === 61) {
+  if (Math.floor(timeLeft) === 40 && Math.floor(timeLeft + dt) === 41) {
     showDialogue("Maa: Beta, gujiya khale... thak gaya hoga! 🍪");
   }
-  if (Math.floor(timeLeft) === 30 && Math.floor(timeLeft + dt) === 31) {
+  if (Math.floor(timeLeft) === 20 && Math.floor(timeLeft + dt) === 21) {
     showDialogue("Papa: Wah beta, bohot accha khele! Proud of you! 🥹");
   }
-  if (Math.floor(timeLeft) === 10 && Math.floor(timeLeft + dt) === 11) {
+  if (Math.floor(timeLeft) === 8 && Math.floor(timeLeft + dt) === 9) {
     showDialogue("Sab: GROUP HUG! 🤗💜🧡💛💚");
   }
 
@@ -900,7 +900,7 @@ function startGame() {
   initAudio();
   resize();
   score = 0;
-  timeLeft = 90;
+  timeLeft = 60;
   colorMeter = 0;
   particles = [];
   splashes = [];
