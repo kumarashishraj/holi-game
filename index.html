@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Holi Hai! - Celebrate Together</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    overflow: hidden;
+    background: #1a0a2e;
+    font-family: 'Baloo 2', cursive, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+
+  canvas { display: block; }
+
+  /* --- Start Screen --- */
+  #startScreen {
+    position: fixed; inset: 0;
+    background: linear-gradient(135deg, #ff6b6b, #ffa500, #ffe066, #51cf66, #339af0, #cc5de8);
+    background-size: 400% 400%;
+    animation: gradientShift 6s ease infinite;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 100;
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  #startScreen.hidden { opacity: 0; pointer-events: none; transform: scale(1.1); }
+
+  @keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  #startScreen h1 {
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    color: #fff;
+    text-shadow: 3px 3px 0 #e64980, 6px 6px 0 rgba(0,0,0,0.2);
+    animation: bounceIn 1s ease;
+    text-align: center;
+    line-height: 1.1;
+  }
+
+  #startScreen .subtitle {
+    font-size: clamp(1rem, 3vw, 1.5rem);
+    color: rgba(255,255,255,0.9);
+    margin: 10px 0 30px;
+    text-align: center;
+    padding: 0 20px;
+    max-width: 500px;
+    line-height: 1.4;
+  }
+
+  #startScreen .emoji-row {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  #playBtn {
+    padding: 18px 50px;
+    font-size: 1.5rem;
+    font-family: 'Baloo 2', cursive;
+    font-weight: 800;
+    background: #fff;
+    color: #e64980;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  #playBtn:hover { transform: scale(1.1); box-shadow: 0 12px 35px rgba(0,0,0,0.4); }
+
+  @keyframes bounceIn {
+    0% { transform: scale(0.3); opacity: 0; }
+    50% { transform: scale(1.05); }
+    70% { transform: scale(0.95); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  /* --- HUD --- */
+  #hud {
+    position: fixed; top: 0; left: 0; right: 0;
+    padding: 12px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    z-index: 50;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  #hud.visible { opacity: 1; }
+
+  .hud-box {
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(10px);
+    padding: 8px 18px;
+    border-radius: 25px;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  }
+
+  /* --- Dialogue Bubble --- */
+  #dialogue {
+    position: fixed;
+    bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: rgba(255,255,255,0.95);
+    color: #333;
+    padding: 14px 28px;
+    border-radius: 20px;
+    font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+    font-weight: 600;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    z-index: 60;
+    opacity: 0;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    text-align: center;
+    max-width: 90vw;
+    pointer-events: none;
+  }
+  #dialogue.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
+
+  /* --- Color Meter --- */
+  #colorMeter {
+    position: fixed;
+    left: 15px; top: 50%; transform: translateY(-50%);
+    width: 18px; height: 200px;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(8px);
+    border-radius: 12px;
+    z-index: 50;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  #colorMeter.visible { opacity: 1; }
+  #colorMeterFill {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 0%;
+    background: linear-gradient(to top, #ff6b6b, #ffa500, #ffe066, #51cf66, #339af0, #cc5de8);
+    border-radius: 12px;
+    transition: height 0.3s ease;
+  }
+
+  /* --- End Screen --- */
+  #endScreen {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(15px);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1s ease;
+  }
+  #endScreen.show { opacity: 1; pointer-events: all; }
+
+  #endScreen h1 {
+    font-size: clamp(2.5rem, 8vw, 4.5rem);
+    background: linear-gradient(90deg, #ff6b6b, #ffa500, #ffe066, #51cf66, #339af0, #cc5de8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 3s ease infinite;
+    background-size: 400% 400%;
+  }
+
+  #endScreen .end-msg {
+    color: rgba(255,255,255,0.85);
+    font-size: clamp(1rem, 3vw, 1.4rem);
+    margin: 15px 0 30px;
+    text-align: center;
+    padding: 0 30px;
+    max-width: 550px;
+    line-height: 1.5;
+  }
+
+  #endScreen .score-display {
+    font-size: 1.3rem;
+    color: #ffe066;
+    margin-bottom: 25px;
+  }
+
+  #replayBtn {
+    padding: 15px 40px;
+    font-size: 1.3rem;
+    font-family: 'Baloo 2', cursive;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ff6b6b, #cc5de8);
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(204,93,232,0.4);
+    transition: all 0.3s ease;
+  }
+  #replayBtn:hover { transform: scale(1.08); }
+</style>
+</head>
+<body>
+
+<!-- Start Screen -->
+<div id="startScreen">
+  <div class="emoji-row">🎨💜🟡🟢🔴💙</div>
+  <h1>Holi Hai!</h1>
+  <p class="subtitle">
+    Door hain toh kya hua... aaj rang toh khele! <br>
+    Your family is waiting to play with you.
+  </p>
+  <button id="playBtn" onclick="startGame()">Khelte Hai! 🎉</button>
+</div>
+
+<!-- Game Canvas -->
+<canvas id="gameCanvas"></canvas>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-box" id="scoreBox">🎯 Score: 0</div>
+  <div class="hud-box" id="timerBox">⏱ 1:30</div>
+</div>
+
+<!-- Color Meter -->
+<div id="colorMeter"><div id="colorMeterFill"></div></div>
+
+<!-- Dialogue Bubble -->
+<div id="dialogue"></div>
+
+<!-- End Screen -->
+<div id="endScreen">
+  <h1>Happy Holi!</h1>
+  <div class="end-msg">
+    Chahe kitne bhi door ho, rang toh dil tak pahunchte hain.<br>
+    Maa-Papa ko call kar lena aaj. 💛
+  </div>
+  <div class="score-display" id="finalScore"></div>
+  <button id="replayBtn" onclick="restartGame()">Ek Aur Baar! 🔄</button>
+</div>
+
+<script>
+// ===================== AUDIO ENGINE =====================
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playNote(freq, duration, type = 'sine', vol = 0.08) {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+function playSplash() {
+  playNote(800 + Math.random() * 400, 0.15, 'sine', 0.06);
+  setTimeout(() => playNote(400 + Math.random() * 200, 0.2, 'triangle', 0.04), 50);
+}
+
+function playHit() {
+  playNote(500, 0.1, 'square', 0.05);
+  playNote(700, 0.15, 'sine', 0.04);
+}
+
+function playBGM() {
+  // Simple festive melody loop
+  const notes = [523, 587, 659, 698, 784, 698, 659, 587, 523, 440, 523, 587, 523];
+  const durations = [0.3, 0.3, 0.3, 0.3, 0.6, 0.3, 0.3, 0.3, 0.6, 0.3, 0.3, 0.3, 0.8];
+  let time = 0;
+  notes.forEach((note, i) => {
+    setTimeout(() => {
+      if (gameRunning) playNote(note, durations[i] * 0.9, 'triangle', 0.03);
+    }, time * 1000);
+    time += durations[i];
+  });
+  if (gameRunning) setTimeout(playBGM, time * 1000);
+}
+
+// Dhol beat
+function playDhol() {
+  if (!gameRunning) return;
+  playNote(80, 0.15, 'triangle', 0.07);
+  setTimeout(() => playNote(100, 0.1, 'triangle', 0.05), 200);
+  setTimeout(() => playNote(80, 0.15, 'triangle', 0.07), 400);
+  setTimeout(() => playNote(120, 0.1, 'triangle', 0.05), 500);
+  setTimeout(() => playNote(80, 0.12, 'triangle', 0.06), 700);
+  setTimeout(playDhol, 1200);
+}
+
+// ===================== GAME STATE =====================
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+let gameRunning = false;
+let score = 0;
+let timeLeft = 90; // 1:30
+let colorMeter = 0;
+let characters = [];
+let particles = [];
+let splashes = [];
+let throwProjectiles = [];
+let bgSplats = []; // permanent color stains on background
+let dialogueTimer = 0;
+
+const COLORS = [
+  '#ff6b6b', '#ff8787', '#e64980', '#cc5de8', '#845ef7',
+  '#5c7cfa', '#339af0', '#22b8cf', '#20c997', '#51cf66',
+  '#94d82d', '#fcc419', '#ff922b', '#ffa500', '#ff6348',
+  '#ff4757', '#e84393', '#a29bfe', '#fd79a8', '#fdcb6e'
+];
+
+const DIALOGUES = {
+  maa: [
+    "Arre! Muh toh khol, gujiya kha le! 😄",
+    "Dekh tere kapde kharab ho gaye! 😂",
+    "Ruk ja, abhi rang lagati hoon!",
+    "Kitna bada ho gaya mera baccha... 🥹",
+    "Thandai pi le pehle!",
+    "Aaja idhar, gulaal laga doon 💛",
+    "Tera favourite - pink rang layi hoon!",
+    "Bachpan yaad hai? Puri colony mein rang daalta tha!"
+  ],
+  papa: [
+    "Beta, zara dhyan se! 😄",
+    "Haha! Mera nishana abhi bhi pakka hai!",
+    "Arre wah, accha rang lagaya!",
+    "Bachpan mein aise hi khelte the hum!",
+    "Ek aur balloon lao!",
+    "Bura na mano, Holi hai! 🎉",
+    "Dekh, tera chehra rainbow ban gaya! 😂",
+    "Chal aaj sab bhool ke bas khelte hain!"
+  ],
+  dost: [
+    "Bhaag mat! Pakad lunga! 😆",
+    "Tera chehra abhi saaf hai... not for long!",
+    "BURA NA MANO HOLI HAI!!",
+    "Arre yaar, meri nayi shirt thi! 😭😂",
+    "Tu ruk, abhi pichkari bharke aata hoon!",
+    "Chal selfie lete hain! 🤳",
+    "Yaaar... kitna miss karta hai tujhe! 🥺",
+    "Next year pakka saath mein khelenge!"
+  ],
+  behen: [
+    "Bhaiya! Meri photo mat kheench! 😤😂",
+    "Dekho meri rangoli pe rang mat daalna!",
+    "Arre! Meri favorite dress pe rang mat daal!",
+    "Haha catch me if you can! 🏃‍♀️",
+    "Bhaiya tere liye gujiya bachi hai!",
+    "Maa dekho bhaiya rang daal raha hai! 😂",
+    "Abhi Maa ko bulati hoon! 😈",
+    "Bohot miss kiya tumhe... jaldi aao! 💕"
+  ]
+};
+
+// ===================== CHARACTER CLASS =====================
+class Character {
+  constructor(name, label, emoji, color, x, y, speed) {
+    this.name = name;
+    this.label = label;
+    this.emoji = emoji;
+    this.color = color;
+    this.x = x;
+    this.y = y;
+    this.baseY = y;
+    this.speed = speed;
+    this.size = Math.min(W, H) * 0.065;
+    this.dx = (Math.random() - 0.5) * speed;
+    this.dy = (Math.random() - 0.5) * speed * 0.5;
+    this.hitAnim = 0;
+    this.throwCooldown = 0;
+    this.lastDialogue = 0;
+    this.stainColors = [];
+    this.wobble = 0;
+    this.bobPhase = Math.random() * Math.PI * 2;
+  }
+
+  update(dt) {
+    this.bobPhase += dt * 2;
+    this.wobble *= 0.92;
+
+    // Movement with boundary bounce
+    this.x += this.dx * dt * 60;
+    this.y += this.dy * dt * 60 + Math.sin(this.bobPhase) * 0.3;
+
+    const margin = this.size + 20;
+    if (this.x < margin) { this.x = margin; this.dx = Math.abs(this.dx); }
+    if (this.x > W - margin) { this.x = W - margin; this.dx = -Math.abs(this.dx); }
+    if (this.y < H * 0.15 + margin) { this.y = H * 0.15 + margin; this.dy = Math.abs(this.dy); }
+    if (this.y > H - margin - 60) { this.y = H - margin - 60; this.dy = -Math.abs(this.dy); }
+
+    // Random direction changes
+    if (Math.random() < 0.01) this.dx = (Math.random() - 0.5) * this.speed;
+    if (Math.random() < 0.01) this.dy = (Math.random() - 0.5) * this.speed * 0.5;
+
+    // Hit animation decay
+    if (this.hitAnim > 0) this.hitAnim -= dt * 3;
+
+    // Throw color at player periodically
+    this.throwCooldown -= dt;
+    if (this.throwCooldown <= 0) {
+      this.throwColor();
+      this.throwCooldown = 2.5 + Math.random() * 4;
+    }
+  }
+
+  throwColor() {
+    const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+    // Throw towards center of screen (where player "is")
+    const targetX = W / 2 + (Math.random() - 0.5) * W * 0.6;
+    const targetY = H / 2 + (Math.random() - 0.5) * H * 0.4;
+    throwProjectiles.push({
+      x: this.x, y: this.y,
+      targetX, targetY,
+      color,
+      progress: 0,
+      from: this.name
+    });
+
+    // Sometimes say something
+    if (Date.now() - this.lastDialogue > 6000 && Math.random() < 0.4) {
+      const lines = DIALOGUES[this.name] || DIALOGUES.dost;
+      showDialogue(`${this.label}: ${lines[Math.floor(Math.random() * lines.length)]}`);
+      this.lastDialogue = Date.now();
+    }
+  }
+
+  draw() {
+    ctx.save();
+    const scale = 1 + this.hitAnim * 0.15;
+    const shake = this.wobble * 3;
+    ctx.translate(this.x + Math.sin(Date.now() * 0.01) * shake, this.y);
+    ctx.scale(scale, scale);
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+    ctx.beginPath();
+    ctx.ellipse(0, this.size + 5, this.size * 0.7, this.size * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body circle
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Color stains on character
+    this.stainColors.forEach((stain, i) => {
+      ctx.fillStyle = stain.color + '99';
+      ctx.beginPath();
+      ctx.arc(stain.ox, stain.oy, this.size * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Border
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Emoji face
+    ctx.font = `${this.size * 0.9}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(this.emoji, 0, 2);
+
+    // Name label
+    ctx.font = `bold ${Math.max(12, this.size * 0.38)}px 'Baloo 2', sans-serif`;
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 4;
+    ctx.fillText(this.label, 0, this.size + 22);
+    ctx.shadowBlur = 0;
+
+    ctx.restore();
+  }
+
+  isHit(px, py) {
+    const dx = px - this.x;
+    const dy = py - this.y;
+    return Math.sqrt(dx * dx + dy * dy) < this.size * 1.3;
+  }
+
+  onHit(color) {
+    this.hitAnim = 1;
+    this.wobble = 1;
+    this.stainColors.push({
+      color,
+      ox: (Math.random() - 0.5) * this.size * 0.8,
+      oy: (Math.random() - 0.5) * this.size * 0.8
+    });
+    if (this.stainColors.length > 8) this.stainColors.shift();
+    playHit();
+  }
+}
+
+// ===================== PARTICLES =====================
+function spawnSplash(x, y, color, count = 25) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2 + Math.random() * 6;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 2,
+      color,
+      life: 1,
+      size: 3 + Math.random() * 8,
+      gravity: 0.1 + Math.random() * 0.1
+    });
+  }
+
+  // Add permanent splat
+  bgSplats.push({
+    x, y, color,
+    size: 20 + Math.random() * 40,
+    opacity: 0.3 + Math.random() * 0.2,
+    rotation: Math.random() * Math.PI * 2
+  });
+
+  playSplash();
+}
+
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx * dt * 60;
+    p.y += p.vy * dt * 60;
+    p.vy += p.gravity;
+    p.life -= dt * 1.5;
+    p.size *= 0.99;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+// ===================== PROJECTILES =====================
+function updateProjectiles(dt) {
+  for (let i = throwProjectiles.length - 1; i >= 0; i--) {
+    const p = throwProjectiles[i];
+    p.progress += dt * 2;
+    if (p.progress >= 1) {
+      // Splash at target
+      spawnSplash(p.targetX, p.targetY, p.color, 15);
+      if (p.from) {
+        // Character threw at player - increase color meter
+        colorMeter = Math.min(100, colorMeter + 2);
+        updateColorMeter();
+      }
+      throwProjectiles.splice(i, 1);
+    }
+  }
+}
+
+function drawProjectiles() {
+  throwProjectiles.forEach(p => {
+    const t = p.progress;
+    // Parabolic arc
+    const x = p.x + (p.targetX - p.x) * t;
+    const y = p.y + (p.targetY - p.y) * t - Math.sin(t * Math.PI) * 120;
+
+    // Balloon/gulal blob
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(x, y, 10 + Math.sin(t * Math.PI) * 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Trail
+    ctx.fillStyle = p.color + '44';
+    for (let j = 1; j <= 3; j++) {
+      const tt = Math.max(0, t - j * 0.05);
+      const tx = p.x + (p.targetX - p.x) * tt;
+      const ty = p.y + (p.targetY - p.y) * tt - Math.sin(tt * Math.PI) * 120;
+      ctx.beginPath();
+      ctx.arc(tx, ty, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+}
+
+// ===================== BACKGROUND =====================
+function drawBackground() {
+  // Sky gradient (gets more colorful over time)
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  const colorfulness = colorMeter / 100;
+  grad.addColorStop(0, lerpColor('#1a0a2e', '#ff922b', colorfulness * 0.3));
+  grad.addColorStop(0.5, lerpColor('#2d1b69', '#ff6b6b', colorfulness * 0.2));
+  grad.addColorStop(1, lerpColor('#1a0a2e', '#cc5de8', colorfulness * 0.25));
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Ground
+  ctx.fillStyle = lerpColor('#0f0520', '#fdf2e9', colorfulness * 0.3);
+  ctx.fillRect(0, H * 0.85, W, H * 0.15);
+
+  // Simple houses in background
+  drawHouses();
+
+  // Permanent color splats
+  bgSplats.forEach(s => {
+    ctx.globalAlpha = s.opacity;
+    ctx.fillStyle = s.color;
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(s.rotation);
+    // Irregular splat shape
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const r = s.size * (0.5 + Math.random() * 0.5);
+      if (i === 0) ctx.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
+      else ctx.quadraticCurveTo(
+        Math.cos(angle - 0.3) * r * 1.2,
+        Math.sin(angle - 0.3) * r * 1.2,
+        Math.cos(angle) * r,
+        Math.sin(angle) * r
+      );
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawHouses() {
+  const houseColors = ['#e8d5b7', '#f5e6d3', '#d4c4a8', '#c9b896'];
+  const roofColors = ['#c0392b', '#e74c3c', '#d35400', '#e67e22'];
+  const houseCount = Math.ceil(W / 160);
+
+  for (let i = 0; i < houseCount; i++) {
+    const x = i * 160 + 30;
+    const houseW = 100 + Math.sin(i * 2.5) * 20;
+    const houseH = 80 + Math.sin(i * 1.7) * 30;
+    const baseY = H * 0.85;
+
+    // House body
+    ctx.fillStyle = houseColors[i % houseColors.length];
+    ctx.fillRect(x, baseY - houseH, houseW, houseH);
+
+    // Roof
+    ctx.fillStyle = roofColors[i % roofColors.length];
+    ctx.beginPath();
+    ctx.moveTo(x - 10, baseY - houseH);
+    ctx.lineTo(x + houseW / 2, baseY - houseH - 35);
+    ctx.lineTo(x + houseW + 10, baseY - houseH);
+    ctx.closePath();
+    ctx.fill();
+
+    // Window
+    ctx.fillStyle = '#ffe066';
+    ctx.globalAlpha = 0.7 + Math.sin(Date.now() * 0.002 + i) * 0.3;
+    ctx.fillRect(x + houseW * 0.3, baseY - houseH + 15, 18, 22);
+    ctx.fillRect(x + houseW * 0.6, baseY - houseH + 15, 18, 22);
+    ctx.globalAlpha = 1;
+
+    // Door
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(x + houseW * 0.38, baseY - 45, 24, 45);
+  }
+}
+
+function lerpColor(a, b, t) {
+  const ah = parseInt(a.replace('#', ''), 16);
+  const bh = parseInt(b.replace('#', ''), 16);
+  const ar = (ah >> 16) & 0xff, ag = (ah >> 8) & 0xff, ab = ah & 0xff;
+  const br = (bh >> 16) & 0xff, bg = (bh >> 8) & 0xff, bb = bh & 0xff;
+  const rr = Math.round(ar + (br - ar) * t);
+  const rg = Math.round(ag + (bg - ag) * t);
+  const rb = Math.round(ab + (bb - ab) * t);
+  return `rgb(${rr},${rg},${rb})`;
+}
+
+// ===================== PICHKARI CURSOR =====================
+let mouseX = W / 2, mouseY = H / 2;
+let pichkariAngle = 0;
+
+function drawPichkari() {
+  if (!gameRunning) return;
+  ctx.save();
+  ctx.translate(mouseX, mouseY);
+  ctx.rotate(pichkariAngle);
+
+  // Pichkari body
+  ctx.fillStyle = '#ff6b6b';
+  ctx.fillRect(-5, -25, 10, 35);
+
+  // Tank
+  ctx.fillStyle = '#339af0';
+  ctx.beginPath();
+  ctx.arc(0, 15, 12, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#1c7ed6';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Nozzle
+  ctx.fillStyle = '#ffd43b';
+  ctx.fillRect(-3, -35, 6, 12);
+
+  // Tip
+  ctx.fillStyle = '#ff922b';
+  ctx.beginPath();
+  ctx.arc(0, -35, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+
+  // Colorful crosshair
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(mouseX, mouseY, 25, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+// ===================== FLOATING COLOR POWDER =====================
+let floatingPowder = [];
+
+function initFloatingPowder() {
+  floatingPowder = [];
+  for (let i = 0; i < 30; i++) {
+    floatingPowder.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      size: 2 + Math.random() * 4,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      speedX: (Math.random() - 0.5) * 0.5,
+      speedY: -0.2 - Math.random() * 0.5,
+      opacity: 0.2 + Math.random() * 0.4
+    });
+  }
+}
+
+function updateFloatingPowder(dt) {
+  floatingPowder.forEach(p => {
+    p.x += p.speedX * dt * 60;
+    p.y += p.speedY * dt * 60;
+    if (p.y < -10) { p.y = H + 10; p.x = Math.random() * W; }
+    if (p.x < -10) p.x = W + 10;
+    if (p.x > W + 10) p.x = -10;
+  });
+}
+
+function drawFloatingPowder() {
+  floatingPowder.forEach(p => {
+    ctx.globalAlpha = p.opacity;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+// ===================== GAME LOGIC =====================
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+
+function initCharacters() {
+  characters = [];
+  const s = Math.min(W, H) * 0.013;
+  characters.push(new Character('maa', 'Maa', '🥰', '#ff8787', W * 0.25, H * 0.45, s * 0.8));
+  characters.push(new Character('papa', 'Papa', '😎', '#748ffc', W * 0.7, H * 0.4, s * 0.6));
+  characters.push(new Character('dost', 'Yaar', '😜', '#69db7c', W * 0.5, H * 0.55, s * 1.2));
+  characters.push(new Character('behen', 'Gudiya', '😤', '#ffa94d', W * 0.4, H * 0.65, s * 1.0));
+}
+
+function handleClick(px, py) {
+  if (!gameRunning) return;
+  const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+  let hitSomething = false;
+
+  characters.forEach(ch => {
+    if (ch.isHit(px, py)) {
+      ch.onHit(color);
+      spawnSplash(px, py, color, 30);
+      score += 10;
+      hitSomething = true;
+    }
+  });
+
+  if (!hitSomething) {
+    spawnSplash(px, py, color, 12);
+    score += 1;
+  }
+
+  colorMeter = Math.min(100, colorMeter + (hitSomething ? 5 : 1));
+  updateColorMeter();
+  updateScore();
+}
+
+function updateScore() {
+  document.getElementById('scoreBox').textContent = `🎯 Score: ${score}`;
+}
+
+function updateTimer() {
+  const m = Math.floor(timeLeft / 60);
+  const s = Math.floor(timeLeft % 60);
+  document.getElementById('timerBox').textContent = `⏱ ${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function updateColorMeter() {
+  document.getElementById('colorMeterFill').style.height = colorMeter + '%';
+}
+
+function showDialogue(text) {
+  const el = document.getElementById('dialogue');
+  el.textContent = text;
+  el.classList.add('show');
+  clearTimeout(dialogueTimer);
+  dialogueTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ===================== GAME LOOP =====================
+let lastTime = 0;
+let gameTimer;
+
+function gameLoop(timestamp) {
+  if (!gameRunning) return;
+  const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+  lastTime = timestamp;
+
+  // Update timer
+  timeLeft -= dt;
+  if (timeLeft <= 0) {
+    endGame();
+    return;
+  }
+  updateTimer();
+
+  // Update
+  characters.forEach(ch => ch.update(dt));
+  updateParticles(dt);
+  updateProjectiles(dt);
+  updateFloatingPowder(dt);
+
+  // Special moments
+  if (Math.floor(timeLeft) === 60 && Math.floor(timeLeft + dt) === 61) {
+    showDialogue("Maa: Beta, gujiya khale... thak gaya hoga! 🍪");
+  }
+  if (Math.floor(timeLeft) === 30 && Math.floor(timeLeft + dt) === 31) {
+    showDialogue("Papa: Wah beta, bohot accha khele! Proud of you! 🥹");
+  }
+  if (Math.floor(timeLeft) === 10 && Math.floor(timeLeft + dt) === 11) {
+    showDialogue("Sab: GROUP HUG! 🤗💜🧡💛💚");
+  }
+
+  // Draw
+  drawBackground();
+  drawFloatingPowder();
+  drawProjectiles();
+  characters.forEach(ch => ch.draw());
+  drawParticles();
+  drawPichkari();
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ===================== START / END =====================
+function startGame() {
+  initAudio();
+  resize();
+  score = 0;
+  timeLeft = 90;
+  colorMeter = 0;
+  particles = [];
+  splashes = [];
+  throwProjectiles = [];
+  bgSplats = [];
+  gameRunning = true;
+  lastTime = performance.now();
+
+  initCharacters();
+  initFloatingPowder();
+  updateScore();
+  updateTimer();
+  updateColorMeter();
+
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('hud').classList.add('visible');
+  document.getElementById('colorMeter').classList.add('visible');
+
+  setTimeout(() => {
+    showDialogue("Maa: Aaja beta, aaj rang khelenge saath mein! 💛");
+  }, 1000);
+
+  setTimeout(playBGM, 500);
+  setTimeout(playDhol, 1000);
+
+  requestAnimationFrame(gameLoop);
+}
+
+function endGame() {
+  gameRunning = false;
+  document.getElementById('hud').classList.remove('visible');
+  document.getElementById('colorMeter').classList.remove('visible');
+
+  const el = document.getElementById('endScreen');
+  document.getElementById('finalScore').innerHTML =
+    `🎨 Rang Score: ${score} | 🌈 Rangeen-ness: ${colorMeter}%`;
+  setTimeout(() => el.classList.add('show'), 500);
+
+  // Final celebration particles
+  for (let i = 0; i < 8; i++) {
+    setTimeout(() => {
+      spawnSplash(
+        Math.random() * W,
+        Math.random() * H * 0.7,
+        COLORS[Math.floor(Math.random() * COLORS.length)],
+        20
+      );
+    }, i * 200);
+  }
+
+  // Continue drawing the final frame with particles
+  function endAnim(ts) {
+    const dt = Math.min((ts - lastTime) / 1000, 0.05);
+    lastTime = ts;
+    updateParticles(dt);
+    drawBackground();
+    drawFloatingPowder(dt);
+    characters.forEach(ch => ch.draw());
+    drawParticles();
+    if (!gameRunning) requestAnimationFrame(endAnim);
+  }
+  requestAnimationFrame(endAnim);
+}
+
+function restartGame() {
+  document.getElementById('endScreen').classList.remove('show');
+  setTimeout(startGame, 300);
+}
+
+// ===================== INPUT HANDLING =====================
+canvas.addEventListener('mousemove', e => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+  pichkariAngle = Math.atan2(e.movementY || 0, e.movementX || 0) * 0.3;
+});
+
+canvas.addEventListener('mousedown', e => {
+  e.preventDefault();
+  handleClick(e.clientX, e.clientY);
+});
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const touch = e.touches[0];
+  mouseX = touch.clientX;
+  mouseY = touch.clientY;
+  handleClick(touch.clientX, touch.clientY);
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const touch = e.touches[0];
+  mouseX = touch.clientX;
+  mouseY = touch.clientY;
+}, { passive: false });
+
+window.addEventListener('resize', () => {
+  resize();
+  if (gameRunning) {
+    characters.forEach(ch => {
+      ch.size = Math.min(W, H) * 0.065;
+    });
+    initFloatingPowder();
+  }
+});
+
+// Initial setup
+resize();
+</script>
+</body>
+</html>
