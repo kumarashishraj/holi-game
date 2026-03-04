@@ -625,7 +625,9 @@ class Character {
     ctx.restore();
   }
 
-  showBubble(text) {
+  showBubble(text, force = false) {
+    // Don't interrupt an active bubble unless forced (timed events)
+    if (!force && this.bubbleTimer > 0.5) return;
     this.bubbleText = text;
     this.bubbleTimer = 2.5;
     this.bubbleOpacity = 0.1;
@@ -749,12 +751,15 @@ class Character {
     this.hitStreak++;
     this.lastHitTime = Date.now();
 
+    // Only react every 3rd-4th hit (not every click)
+    if (this.hitStreak % 3 !== 0) return;
+
     // Show reactive dialogue based on streak
-    if (this.hitStreak >= 5 && Math.random() < 0.7) {
+    if (this.hitStreak >= 9) {
       // Streak reaction — they're fed up!
       const lines = STREAK_DIALOGUES[this.name] || STREAK_DIALOGUES.dost;
       this.showBubble(lines[Math.floor(Math.random() * lines.length)]);
-    } else if (Math.random() < 0.55) {
+    } else {
       // Normal hit reaction
       const lines = HIT_DIALOGUES[this.name] || HIT_DIALOGUES.dost;
       this.showBubble(lines[Math.floor(Math.random() * lines.length)]);
@@ -1119,10 +1124,10 @@ function updateColorMeter() {
   document.getElementById('colorMeterFill').style.height = colorMeter + '%';
 }
 
-// Helper to trigger bubble on a character by name
+// Helper to trigger bubble on a character by name (forced for story moments)
 function showCharBubble(name, text) {
   const ch = characters.find(c => c.name === name);
-  if (ch) ch.showBubble(text);
+  if (ch) ch.showBubble(text, true);
 }
 
 // ===================== GAME LOOP =====================
@@ -1152,7 +1157,7 @@ function gameLoop(timestamp) {
   }
   if (Math.floor(timeLeft) === 8 && Math.floor(timeLeft + dt) === 9) {
     // Everyone says something for group hug moment
-    characters.forEach(ch => ch.showBubble('GROUP HUG! 🤗💛'));
+    characters.forEach(ch => ch.showBubble('GROUP HUG! 🤗💛', true));
   }
 
   // Draw everything
