@@ -516,6 +516,9 @@ class Character {
     // Hit streak tracking
     this.hitStreak = 0;
     this.lastHitTime = 0;
+    // Progressive color drenching
+    this.totalHits = 0;
+    this.drenchColors = []; // all colors ever applied, used for body tint
   }
 
   update(dt) {
@@ -586,22 +589,66 @@ class Character {
     ctx.ellipse(0, this.size + 5, this.size * 0.7, this.size * 0.18, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Body circle
+    // Drench level: 0 = clean, 1 = fully drenched
+    const drench = Math.min(1, this.totalHits / 15);
+
+    // Body circle — base color fades as drench increases
     ctx.fillStyle = this.color;
     ctx.beginPath();
     ctx.arc(0, 0, this.size, 0, Math.PI * 2);
     ctx.fill();
 
-    // Color stains
-    this.stainColors.forEach(stain => {
-      ctx.fillStyle = stain.color + '99';
+    // Layer colored splotches from drenchColors to tint the body
+    if (this.drenchColors.length > 0) {
+      // Draw large tint layers covering the body
+      ctx.save();
       ctx.beginPath();
-      ctx.arc(stain.ox, stain.oy, this.size * 0.35, 0, Math.PI * 2);
+      ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+      ctx.clip(); // clip to body circle
+
+      this.drenchColors.forEach((dc, i) => {
+        ctx.globalAlpha = 0.15 + drench * 0.15;
+        ctx.fillStyle = dc;
+        const angle = (i / this.drenchColors.length) * Math.PI * 2;
+        const dist = this.size * 0.3;
+        ctx.beginPath();
+        ctx.arc(Math.cos(angle) * dist, Math.sin(angle) * dist, this.size * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    // Smaller splatter stains on top (the detailed spots)
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(0, 0, this.size + 4, 0, Math.PI * 2);
+    ctx.clip(); // keep stains within character bounds
+
+    this.stainColors.forEach(stain => {
+      const opacity = 0.5 + drench * 0.3; // more opaque as more drenched
+      ctx.globalAlpha = opacity;
+      ctx.fillStyle = stain.color;
+      ctx.beginPath();
+      ctx.arc(stain.ox, stain.oy, this.size * stain.size, 0, Math.PI * 2);
       ctx.fill();
     });
+    ctx.restore();
+    ctx.globalAlpha = 1;
+
+    // Colorful glow ring when heavily drenched
+    if (drench > 0.5) {
+      const glowAlpha = (drench - 0.5) * 0.4;
+      ctx.globalAlpha = glowAlpha;
+      ctx.strokeStyle = this.drenchColors[Math.floor(Date.now() / 200) % this.drenchColors.length] || '#fff';
+      ctx.lineWidth = 3 + drench * 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.size + 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
 
     // Border
-    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.strokeStyle = 'rgba(255,255,255,' + (0.4 - drench * 0.2) + ')';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(0, 0, this.size, 0, Math.PI * 2);
@@ -739,12 +786,22 @@ class Character {
   onHit(color) {
     this.hitAnim = 1;
     this.wobble = 1;
+    this.totalHits++;
+
+    // Keep stacking stains — more hits = more covered
     this.stainColors.push({
       color,
-      ox: (Math.random() - 0.5) * this.size * 0.8,
-      oy: (Math.random() - 0.5) * this.size * 0.8
+      ox: (Math.random() - 0.5) * this.size,
+      oy: (Math.random() - 0.5) * this.size,
+      size: 0.25 + Math.random() * 0.2 // relative to char size
     });
-    if (this.stainColors.length > 8) this.stainColors.shift();
+    // Only trim very old ones, keep many more visible
+    if (this.stainColors.length > 25) this.stainColors.shift();
+
+    // Track colors for body tint
+    this.drenchColors.push(color);
+    if (this.drenchColors.length > 12) this.drenchColors.shift();
+
     playHit();
 
     // Update hit streak
