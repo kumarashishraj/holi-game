@@ -314,15 +314,15 @@
       </div>
       <div class="how-step">
         <span class="step-icon">🎯</span>
-        <span class="step-text">Drench them in colors — they'll react!</span>
+        <span class="step-text">Hit a character = <b>+10 points</b> each time!</span>
       </div>
       <div class="how-step">
         <span class="step-icon">⏱</span>
-        <span class="step-text">You have 60 seconds — play your heart out</span>
+        <span class="step-text">60 seconds — drench everyone in colors</span>
       </div>
       <div class="how-step">
         <span class="step-icon">💛</span>
-        <span class="step-text">They'll throw colors back — it's Holi!</span>
+        <span class="step-text">They'll throw back & react — enjoy the chaos!</span>
       </div>
     </div>
   </div>
@@ -1135,6 +1135,54 @@ function drawTapRipples() {
   ctx.globalAlpha = 1;
 }
 
+// ===================== FLOATING SCORE POPUPS =====================
+let scorePopups = [];
+
+function spawnScorePopup(x, y, text, color) {
+  scorePopups.push({
+    x, y, text, color,
+    life: 1,
+    vy: -2 // float upward
+  });
+}
+
+function updateScorePopups(dt) {
+  for (let i = scorePopups.length - 1; i >= 0; i--) {
+    const p = scorePopups[i];
+    p.y += p.vy * dt * 60;
+    p.vy *= 0.97; // slow down
+    p.life -= dt * 1.2;
+    if (p.life <= 0) scorePopups.splice(i, 1);
+  }
+}
+
+function drawScorePopups() {
+  scorePopups.forEach(p => {
+    ctx.save();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.globalAlpha = Math.max(0, p.life);
+
+    const scale = 1 + (1 - p.life) * 0.3; // grows slightly as it fades
+    const fontSize = isMobile ? 22 : 26;
+
+    ctx.font = `bold ${Math.round(fontSize * scale)}px 'Baloo 2', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // Outline
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 3;
+    ctx.strokeText(p.text, p.x, p.y);
+
+    // Fill with the color of the rang thrown
+    ctx.fillStyle = '#fff';
+    ctx.fillText(p.text, p.x, p.y);
+
+    ctx.restore();
+  });
+  ctx.globalAlpha = 1;
+}
+
 // ===================== FLOATING COLOR POWDER =====================
 let floatingPowder = [];
 
@@ -1216,23 +1264,27 @@ function handleClick(px, py) {
     if (ch.isHit(px, py)) {
       ch.onHit(color);
       spawnSplash(px, py, color, SPLASH_COUNT_HIT);
-      score += 10;
+      const points = 10;
+      score += points;
+      // Floating score popup
+      spawnScorePopup(px, py - ch.size, `+${points}`, color);
       hitSomething = true;
     }
   });
 
   if (!hitSomething) {
+    // Miss — just splash, no points
     spawnSplash(px, py, color, SPLASH_COUNT_MISS);
-    score += 1;
-    // Light haptic for miss on mobile
     if (isMobile && navigator.vibrate) navigator.vibrate(10);
   }
 
   // Tap ripple feedback on mobile
   if (isMobile) spawnTapRipple(px, py, color);
 
-  colorMeter = Math.min(100, colorMeter + (hitSomething ? 5 : 1));
-  updateColorMeter();
+  if (hitSomething) {
+    colorMeter = Math.min(100, colorMeter + 5);
+    updateColorMeter();
+  }
   updateScore();
 }
 
@@ -1273,6 +1325,7 @@ function gameLoop(timestamp) {
   updateProjectiles(dt);
   updateFloatingPowder(dt);
   updateTapRipples(dt);
+  updateScorePopups(dt);
 
   // Special dialogue moments — shown as character bubbles
   if (Math.floor(timeLeft) === 40 && Math.floor(timeLeft + dt) === 41) {
@@ -1294,6 +1347,7 @@ function gameLoop(timestamp) {
   characters.forEach(ch => ch.drawBubble()); // speech bubbles on top
   drawParticles();
   drawTapRipples();
+  drawScorePopups();
   drawPichkari();
 
   requestAnimationFrame(gameLoop);
@@ -1311,6 +1365,7 @@ function startGame() {
   throwProjectiles = [];
   bgSplats = [];
   tapRipples = [];
+  scorePopups = [];
   gameRunning = true;
   lastTime = performance.now();
 
