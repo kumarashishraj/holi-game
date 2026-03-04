@@ -129,27 +129,7 @@
     white-space: nowrap;
   }
 
-  /* --- Dialogue Bubble --- */
-  #dialogue {
-    position: fixed;
-    bottom: 30px;
-    bottom: max(30px, calc(env(safe-area-inset-bottom) + 15px));
-    left: 50%; transform: translateX(-50%);
-    background: rgba(255,255,255,0.95);
-    color: #333;
-    padding: 12px 22px;
-    border-radius: 20px;
-    font-size: clamp(0.8rem, 2.5vw, 1.2rem);
-    font-weight: 600;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
-    z-index: 60;
-    opacity: 0;
-    transition: opacity 0.4s ease, transform 0.4s ease;
-    text-align: center;
-    max-width: 90vw;
-    pointer-events: none;
-  }
-  #dialogue.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
+  /* dialogue bubble removed — now drawn on canvas */
 
   /* --- Color Meter --- */
   #colorMeter {
@@ -295,9 +275,6 @@
 <!-- Tap Hint -->
 <div id="tapHint">Tap on characters to throw colors!</div>
 
-<!-- Dialogue Bubble -->
-<div id="dialogue"></div>
-
 <!-- End Screen -->
 <div id="endScreen">
   <h1>Happy Holi!</h1>
@@ -388,7 +365,6 @@ let particles = [];
 let splashes = [];
 let throwProjectiles = [];
 let bgSplats = [];
-let dialogueTimer = 0;
 let tapHintTimer = 0;
 
 // Particle limits based on device
@@ -405,46 +381,110 @@ const COLORS = [
   '#ff4757', '#e84393', '#a29bfe', '#fd79a8', '#fdcb6e'
 ];
 
-const DIALOGUES = {
+// Random idle dialogues (when characters throw at you)
+const IDLE_DIALOGUES = {
   maa: [
-    "Arre! Muh toh khol, gujiya kha le! 😄",
-    "Dekh tere kapde kharab ho gaye! 😂",
-    "Ruk ja, abhi rang lagati hoon!",
+    "Arre! Gujiya kha le pehle! 😄",
+    "Ruk ja, rang lagati hoon!",
     "Kitna bada ho gaya mera baccha... 🥹",
-    "Thandai pi le pehle!",
-    "Aaja idhar, gulaal laga doon 💛",
-    "Tera favourite - pink rang layi hoon!",
-    "Bachpan yaad hai? Puri colony mein rang daalta tha!"
+    "Thandai pi le beta!",
+    "Aaja idhar 💛",
+    "Tera favourite pink rang layi!",
+    "Bachpan yaad hai?"
   ],
   papa: [
-    "Beta, zara dhyan se! 😄",
-    "Haha! Mera nishana abhi bhi pakka hai!",
-    "Arre wah, accha rang lagaya!",
-    "Bachpan mein aise hi khelte the hum!",
+    "Mera nishana pakka hai! 😄",
+    "Bachpan mein aise hi khelte the!",
     "Ek aur balloon lao!",
     "Bura na mano, Holi hai! 🎉",
-    "Dekh, tera chehra rainbow ban gaya! 😂",
-    "Chal aaj sab bhool ke bas khelte hain!"
+    "Aaj sab bhool ke khelte hain!",
+    "Beta dhyan se! 😄"
   ],
   dost: [
-    "Bhaag mat! Pakad lunga! 😆",
-    "Tera chehra abhi saaf hai... not for long!",
+    "Bhaag mat yaar! 😆",
     "BURA NA MANO HOLI HAI!!",
-    "Arre yaar, meri nayi shirt thi! 😭😂",
-    "Tu ruk, abhi pichkari bharke aata hoon!",
+    "Pichkari bharke aata hoon!",
     "Chal selfie lete hain! 🤳",
-    "Yaaar... kitna miss karta hai tujhe! 🥺",
-    "Next year pakka saath mein khelenge!"
+    "Miss karta hai tujhe! 🥺",
+    "Next year pakka saath mein!"
   ],
   behen: [
-    "Bhaiya! Meri photo mat kheench! 😤😂",
-    "Dekho meri rangoli pe rang mat daalna!",
-    "Arre! Meri favorite dress pe rang mat daal!",
-    "Haha catch me if you can! 🏃‍♀️",
-    "Bhaiya tere liye gujiya bachi hai!",
-    "Maa dekho bhaiya rang daal raha hai! 😂",
-    "Abhi Maa ko bulati hoon! 😈",
-    "Bohot miss kiya tumhe... jaldi aao! 💕"
+    "Catch me if you can! 🏃‍♀️",
+    "Bhaiya gujiya bachi hai!",
+    "Meri rangoli pe mat daalna!",
+    "Miss kiya tumhe... jaldi aao! 💕"
+  ]
+};
+
+// Reactive dialogues when player HITS a character (context-aware)
+const HIT_DIALOGUES = {
+  maa: [
+    "Arre! Maa pe rang?! 😂",
+    "Beta ruk! Abhi tera number! 😤😂",
+    "Haaye meri saari kharab! 😭😂",
+    "Accha toh tu aise khelega?!",
+    "Dekh kya kiya! Papa ko bulati hoon!",
+    "Maa pe haath uthayega?! 😂",
+    "Chal ab gujiya nahi milegi! 😤",
+    "Thik hai... ab dekhna!!"
+  ],
+  papa: [
+    "Oho! Baap pe rang?! 😂",
+    "Accha beta! Ab dekhna! 💪",
+    "Haha seedha nishana! Like father like son!",
+    "Ruk abhi batata hoon! 😎",
+    "Arre wah! Accha nishana hai! 👏",
+    "Pocket money band! 😤😂",
+    "Baap se panga?! Haha!",
+    "Tu toh gaya ab! 😂"
+  ],
+  dost: [
+    "Arre yaar!! Nayi shirt thi! 😭😂",
+    "Tu ruk... abhi aata hoon! 🏃",
+    "OYYY! Maar dunga! 😤😂",
+    "Bhai bhai BHAI! Chehra nahi! 🙈",
+    "Kapde dhulwayega kya?! 😂",
+    "Mummy kasam bahut marunga! 💀",
+    "Saale!! Ruk jaa! 😂",
+    "Ek aur daala toh dekh! 😤"
+  ],
+  behen: [
+    "BHAIYAAA! 😤",
+    "Mummyyyyy dekho bhaiya ko!! 😭",
+    "Maar dungi! Ruk jaa! 😤😂",
+    "Meri favorite dress thi ye! 😭",
+    "Abhi mummy ko bolti hoon! 😈",
+    "Bhaiya please nahi! 🥺... DHISHKYAON! 😂",
+    "Teri girlfriend ko bata dungi! 😏",
+    "BHAIYAAA RUKO! Bahut marungi! 😤💪"
+  ]
+};
+
+// Streak dialogues when player hits the SAME character repeatedly
+const STREAK_DIALOGUES = {
+  maa: [
+    "Beta bas kar! 😭😂",
+    "Kitna rang daalega Maa pe?!",
+    "Ab toh hadh ho gayi! PAPAAA! 😤",
+    "Aaj ki dal mein namak nahi milega! 😂"
+  ],
+  papa: [
+    "Beta... itna bhi nahi! 😅",
+    "Ab inheritance cancel! 😤😂",
+    "Ruk car ki chaabi waapas le! 😂",
+    "Bohot hogaya beta! 😤💀"
+  ],
+  dost: [
+    "BAS KAR YAAR! 😭😂",
+    "Bhai mereko chhod de! 🙏",
+    "UNFRIEND! BLOCKED! 😤😂",
+    "Teri mummy ko call kar raha hoon! 📞"
+  ],
+  behen: [
+    "MUMMYYYYY! Dekho kitna rang! 😭😭",
+    "Bhaiya I HATE YOU! 😤... jk love u 😂",
+    "Ab teri chocolates meri! 😈",
+    "PAPA DEKHO BHAIYA KO!! 😭💀"
   ]
 };
 
@@ -469,6 +509,13 @@ class Character {
     this.stainColors = [];
     this.wobble = 0;
     this.bobPhase = Math.random() * Math.PI * 2;
+    // Speech bubble
+    this.bubbleText = '';
+    this.bubbleTimer = 0;
+    this.bubbleOpacity = 0;
+    // Hit streak tracking
+    this.hitStreak = 0;
+    this.lastHitTime = 0;
   }
 
   update(dt) {
@@ -490,6 +537,17 @@ class Character {
 
     if (this.hitAnim > 0) this.hitAnim -= dt * 3;
 
+    // Speech bubble timer
+    if (this.bubbleTimer > 0) {
+      this.bubbleTimer -= dt;
+      this.bubbleOpacity = Math.min(1, this.bubbleOpacity + dt * 6);
+    } else {
+      this.bubbleOpacity = Math.max(0, this.bubbleOpacity - dt * 4);
+    }
+
+    // Decay hit streak after 3 seconds of no hits
+    if (Date.now() - this.lastHitTime > 3000) this.hitStreak = 0;
+
     this.throwCooldown -= dt;
     if (this.throwCooldown <= 0) {
       this.throwColor();
@@ -509,8 +567,8 @@ class Character {
     });
 
     if (Date.now() - this.lastDialogue > 6000 && Math.random() < 0.4) {
-      const lines = DIALOGUES[this.name] || DIALOGUES.dost;
-      showDialogue(`${this.label}: ${lines[Math.floor(Math.random() * lines.length)]}`);
+      const lines = IDLE_DIALOGUES[this.name] || IDLE_DIALOGUES.dost;
+      this.showBubble(lines[Math.floor(Math.random() * lines.length)]);
       this.lastDialogue = Date.now();
     }
   }
@@ -567,10 +625,88 @@ class Character {
     ctx.restore();
   }
 
+  showBubble(text) {
+    this.bubbleText = text;
+    this.bubbleTimer = 2.5;
+    this.bubbleOpacity = 0.1;
+  }
+
+  drawBubble() {
+    if (this.bubbleOpacity <= 0.01 || !this.bubbleText) return;
+    ctx.save();
+    ctx.globalAlpha = this.bubbleOpacity;
+
+    const fontSize = Math.max(11, Math.min(14, this.size * 0.32));
+    ctx.font = `bold ${fontSize}px 'Baloo 2', sans-serif`;
+
+    // Word wrap for long text
+    const maxWidth = isMobile ? 130 : 170;
+    const words = this.bubbleText.split(' ');
+    const lines = [];
+    let currentLine = words[0];
+    for (let i = 1; i < words.length; i++) {
+      const test = currentLine + ' ' + words[i];
+      if (ctx.measureText(test).width > maxWidth) {
+        lines.push(currentLine);
+        currentLine = words[i];
+      } else {
+        currentLine = test;
+      }
+    }
+    lines.push(currentLine);
+
+    const lineHeight = fontSize + 4;
+    const textW = Math.min(maxWidth, Math.max(...lines.map(l => ctx.measureText(l).width)));
+    const padX = 12, padY = 8;
+    const bubbleW = textW + padX * 2;
+    const bubbleH = lines.length * lineHeight + padY * 2;
+    const bubbleX = this.x;
+    const bubbleY = this.y - this.size - bubbleH - 15;
+
+    // Clamp bubble to screen edges
+    const clampedX = Math.max(bubbleW / 2 + 5, Math.min(W - bubbleW / 2 - 5, bubbleX));
+    const clampedY = Math.max(5, bubbleY);
+
+    // Bubble background
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.shadowColor = 'rgba(0,0,0,0.15)';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    const r = 12;
+    const bx = clampedX - bubbleW / 2;
+    const by = clampedY;
+    ctx.moveTo(bx + r, by);
+    ctx.lineTo(bx + bubbleW - r, by);
+    ctx.quadraticCurveTo(bx + bubbleW, by, bx + bubbleW, by + r);
+    ctx.lineTo(bx + bubbleW, by + bubbleH - r);
+    ctx.quadraticCurveTo(bx + bubbleW, by + bubbleH, bx + bubbleW - r, by + bubbleH);
+    // Tail pointer
+    ctx.lineTo(clampedX + 8, by + bubbleH);
+    ctx.lineTo(clampedX, by + bubbleH + 10);
+    ctx.lineTo(clampedX - 8, by + bubbleH);
+    ctx.lineTo(bx + r, by + bubbleH);
+    ctx.quadraticCurveTo(bx, by + bubbleH, bx, by + bubbleH - r);
+    ctx.lineTo(bx, by + r);
+    ctx.quadraticCurveTo(bx, by, bx + r, by);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Text
+    ctx.fillStyle = '#333';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    lines.forEach((line, i) => {
+      ctx.fillText(line, clampedX, clampedY + padY + i * lineHeight);
+    });
+
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
   isHit(px, py) {
     const dx = px - this.x;
     const dy = py - this.y;
-    // Larger hit area on mobile (finger vs mouse pointer)
     const hitMultiplier = isMobile ? 1.6 : 1.3;
     return Math.sqrt(dx * dx + dy * dy) < this.size * hitMultiplier;
   }
@@ -585,6 +721,21 @@ class Character {
     });
     if (this.stainColors.length > 8) this.stainColors.shift();
     playHit();
+
+    // Update hit streak
+    this.hitStreak++;
+    this.lastHitTime = Date.now();
+
+    // Show reactive dialogue based on streak
+    if (this.hitStreak >= 5 && Math.random() < 0.7) {
+      // Streak reaction — they're fed up!
+      const lines = STREAK_DIALOGUES[this.name] || STREAK_DIALOGUES.dost;
+      this.showBubble(lines[Math.floor(Math.random() * lines.length)]);
+    } else if (Math.random() < 0.55) {
+      // Normal hit reaction
+      const lines = HIT_DIALOGUES[this.name] || HIT_DIALOGUES.dost;
+      this.showBubble(lines[Math.floor(Math.random() * lines.length)]);
+    }
   }
 }
 
@@ -945,12 +1096,10 @@ function updateColorMeter() {
   document.getElementById('colorMeterFill').style.height = colorMeter + '%';
 }
 
-function showDialogue(text) {
-  const el = document.getElementById('dialogue');
-  el.textContent = text;
-  el.classList.add('show');
-  clearTimeout(dialogueTimer);
-  dialogueTimer = setTimeout(() => el.classList.remove('show'), 3500);
+// Helper to trigger bubble on a character by name
+function showCharBubble(name, text) {
+  const ch = characters.find(c => c.name === name);
+  if (ch) ch.showBubble(text);
 }
 
 // ===================== GAME LOOP =====================
@@ -971,15 +1120,16 @@ function gameLoop(timestamp) {
   updateFloatingPowder(dt);
   updateTapRipples(dt);
 
-  // Special dialogue moments
+  // Special dialogue moments — shown as character bubbles
   if (Math.floor(timeLeft) === 40 && Math.floor(timeLeft + dt) === 41) {
-    showDialogue("Maa: Beta, gujiya khale... thak gaya hoga! 🍪");
+    showCharBubble('maa', 'Beta gujiya kha le... thak gaya hoga! 🍪');
   }
   if (Math.floor(timeLeft) === 20 && Math.floor(timeLeft + dt) === 21) {
-    showDialogue("Papa: Wah beta, bohot accha khele! Proud of you! 🥹");
+    showCharBubble('papa', 'Wah beta, proud of you! 🥹');
   }
   if (Math.floor(timeLeft) === 8 && Math.floor(timeLeft + dt) === 9) {
-    showDialogue("Sab: GROUP HUG! 🤗💜🧡💛💚");
+    // Everyone says something for group hug moment
+    characters.forEach(ch => ch.showBubble('GROUP HUG! 🤗💛'));
   }
 
   // Draw everything
@@ -987,6 +1137,7 @@ function gameLoop(timestamp) {
   drawFloatingPowder();
   drawProjectiles();
   characters.forEach(ch => ch.draw());
+  characters.forEach(ch => ch.drawBubble()); // speech bubbles on top
   drawParticles();
   drawTapRipples();
   drawPichkari();
@@ -1027,8 +1178,11 @@ function startGame() {
   }
 
   setTimeout(() => {
-    showDialogue("Maa: Aaja beta, aaj rang khelenge saath mein! 💛");
+    showCharBubble('maa', 'Aaja beta, aaj saath mein khelenge! 💛');
   }, 1000);
+  setTimeout(() => {
+    showCharBubble('dost', 'Oye! Taiyaar hai?! 😜');
+  }, 2500);
 
   setTimeout(playBGM, 500);
   setTimeout(playDhol, 1000);
@@ -1061,9 +1215,11 @@ function endGame() {
     const dt = Math.min((ts - lastTime) / 1000, 0.05);
     lastTime = ts;
     updateParticles(dt);
+    characters.forEach(ch => { ch.bubbleTimer -= dt; ch.bubbleOpacity = Math.max(0, ch.bubbleOpacity - dt * 2); });
     drawBackground();
     drawFloatingPowder();
     characters.forEach(ch => ch.draw());
+    characters.forEach(ch => ch.drawBubble());
     drawParticles();
     if (!gameRunning) requestAnimationFrame(endAnim);
   }
